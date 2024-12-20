@@ -1,0 +1,114 @@
+{
+  "version": "0.1.0",
+  "title": "Chaos Experiment for MyApp",
+  "description": "Test the resilience of MyApp by terminating pods and introducing delays",
+  "steady-state-hypothesis": {
+    "title": "Application is available",
+    "probes": [
+      {
+        "type": "probe",
+        "name": "frontend-is-responsive",
+        "tolerance": 200,
+        "provider": {
+          "type": "http",
+          "url": "http://myapp.local"
+        }
+      },
+      {
+        "type": "probe",
+        "name": "all-pods-are-ready",
+        "tolerance": true,
+        "provider": {
+          "type": "python",
+          "module": "chaosk8s.pod.probes",
+          "func": "pods_in_phase",
+          "arguments": {
+            "label_selector": "app in (my-app-backend-blue, my-app-backend-green, my-app-frontend, my-db)",
+            "phase": "Running",
+            "ns": "devops-namespace-new"
+          }
+        }
+      }
+    ]
+  },
+  "method": [
+    {
+      "type": "action",
+      "name": "terminate-backend-pod",
+      "provider": {
+        "type": "python",
+        "module": "chaosk8s.pod.actions",
+        "func": "terminate_pods",
+        "arguments": {
+          "label_selector": "app=my-app-backend-green",
+          "ns": "devops-namespace-new",
+          "rand": true
+        }
+      },
+      "pauses": {
+        "after": 30
+      }
+    },
+    {
+      "type": "action",
+      "name": "terminate-frontend-pod",
+      "provider": {
+        "type": "python",
+        "module": "chaosk8s.pod.actions",
+        "func": "terminate_pods",
+        "arguments": {
+          "label_selector": "app=my-app-frontend",
+          "ns": "devops-namespace-new",
+          "rand": true
+        }
+      },
+      "pauses": {
+        "after": 30
+      }
+    },
+    {
+      "type": "action",
+      "name": "add-network-latency-backend",
+      "provider": {
+        "type": "python",
+        "module": "chaosk8s.chaosmesh.network.actions",
+        "func": "add_latency",
+        "arguments": {
+          "name": "backend-latency",
+          "ns": "devops-namespace-new",
+          "label_selectors": {
+            "app": "my-app-backend-green"
+          },
+          "latency": "100ms",
+          "direction": "to"
+        }
+      },
+      "pauses": {
+        "after": 30
+      }
+    },
+    {
+      "type": "action",
+      "name": "add-network-latency-frontend",
+      "provider": {
+        "type": "python",
+        "module": "chaosk8s.chaosmesh.network.actions",
+        "func": "add_latency",
+        "arguments": {
+          "name": "frontend-latency",
+          "ns": "devops-namespace-new",
+          "label_selectors": {
+            "app": "my-app-frontend"
+          },
+          "latency": "100ms",
+          "direction": "to"
+        }
+      },
+      "pauses": {
+        "after": 30
+      }
+    }
+  ],
+  "rollbacks": []
+}
+

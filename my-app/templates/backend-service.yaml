@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-app-backend
+spec:
+  selector:
+    app: my-app-backend
+    version: blue  # Initially point to Blue
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
+

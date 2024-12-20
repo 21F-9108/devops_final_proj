@@ -1,7 +1,7 @@
 const express = require("express");
 const path = require("path");
 const collection = require("./config");
-
+const client = require('prom-client');
 
 const app = express();
 
@@ -76,6 +76,19 @@ app.use('/',forgetRoutes);
 //         res.send("An error occurred. Please try again later.");
 //     }
 // });
+
+
+const register = new client.Registry();
+
+// Collect default metrics (e.g., CPU, memory)
+client.collectDefaultMetrics({ register });
+
+// Expose metrics on the /metrics route
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', register.contentType);
+  res.end(await register.metrics());
+});
+
 
 const port = 5000;
 app.listen(port, () => {
